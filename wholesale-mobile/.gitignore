@@ -1,0 +1,50 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+# P2-4 — خودِ `.env` هم ignore می‌شود، نه فقط `.env*.local`.
+# قبلاً wholesale-mobile/.env در git tracked بود. محتوایش فقط
+# EXPO_PUBLIC_API_URL است (secret نیست، چون EXPO_PUBLIC_* در باندل کلاینت
+# embed می‌شود) ولی tracked بودن آن باعث می‌شد آدرس محیط هر توسعه‌دهنده
+# به‌عنوان تغییر در ریپو ثبت شود. نسخهٔ نمونه در `.env.example` است.
+.env
+.env*.local
+!.env.example
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android

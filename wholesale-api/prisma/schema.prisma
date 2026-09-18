@@ -1,0 +1,519 @@
+//این فایل همان schema.prisma است:
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  phone             String             @unique
+  role              UserRole           @default(CUSTOMER)
+  isActive          Boolean            @default(true)
+  lastSeenAt        DateTime?          @default(now())
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  searchHistory     SearchHistory[]
+  customer          Customer?
+  notifications     Notification[]
+  notificationReads NotificationRead[]
+
+  @@map("users")
+}
+
+
+model Customer {
+  id                    String         @id @default(uuid())
+  userId                String         @unique // حذف @map - رفع ارور customers.user_id
+  firstName             String?        // حذف @map
+  lastName              String?        // حذف @map
+  storeName             String?        // حذف @map
+  nationalCode          String?        // حذف @map
+  postalCode            String?        // حذف @map
+  landline              String?
+  province              String?
+  city                  String?
+  address               String?
+  latitude              Float?
+  longitude             Float?
+  businessType          String?
+  nationalCardImage     String?
+  businessLicenseImage  String?
+  selfieWithIdCardImage String?
+  storefrontImage       String?
+  onboardingCompleted   Boolean        @default(false) // حذف @map
+  status                CustomerStatus @default(PENDING)
+  notes                 String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  cartItems             CartItem[]
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders                Order[]
+  otpAttempts           OtpAttempt[]
+  tickets               Ticket[]
+  pushTokens            PushToken[]
+  changeRequests        ProfileChangeRequest[]
+  favorites             Favorite[]
+
+  @@map("customers")
+}
+
+model Category {
+  id             String    @id @default(uuid())
+  name           String
+  nameNormalized String?   @map("name_normalized") // فقط این snake_case است
+  slug           String    @unique
+  imageUrl       String?   
+  isActive       Boolean   @default(true) 
+  sortOrder      Int       @default(0)    
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  products       Product[]
+
+  @@index([nameNormalized])
+  @@map("categories")
+}
+
+model Product {
+  id             String      @id @default(uuid())
+  categoryId     String
+  name           String
+  nameNormalized String?    
+  slug           String      @unique
+  description    String?
+  galleryImages  String[]    @default([])
+  imageUrl       String?
+  price          Int
+  costPrice      Int?
+  oldPrice       Int?
+  unit           ProductUnit @default(CARTON)
+  stock          Int         @default(0)
+  minOrderQty    Int         @default(1)
+  isActive       Boolean     @default(true)
+  isFeatured     Boolean     @default(false)
+  isNew          Boolean     @default(false)
+  isDiscounted   Boolean     @default(false)
+  brand          String?
+  productCode    String?
+  unitDetails    String?
+  itemsPerPackage Int?
+  packageType    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  cartItems      CartItem[]
+  sortOrder      Int         @default(0)
+  orderItems     OrderItem[]
+  favorites      Favorite[]
+  category       Category    @relation(fields: [categoryId], references: [id])
+
+  @@index([nameNormalized])
+  @@map("products")
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  customerId String
+  productId  String
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId])
+  @@map("favorites")
+}
+
+model CartItem {
+  id         String   @id @default(uuid())
+  customerId String
+  productId  String
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId])
+  @@map("cart_items")
+}
+
+enum OrderSource {
+  APP
+  ADMIN
+  VISITOR_IN_PERSON
+}
+
+model Order {
+  id                 String        @id @default(uuid())
+  idempotencyKey     String?       @unique // CamelCase (تایید شده)
+  customerId         String?       // CamelCase (تایید شده)
+  guestName          String?       // CamelCase
+  guestPhone         String?       // CamelCase
+  orderNumber        String        @unique @map("order_number") // snake_case (تایید شده)
+  status             OrderStatus   @default(PENDING)
+  paymentMethod      PaymentMethod // CamelCase (رفع ارور فعلی: حذف @map)
+  paymentStatus      PaymentStatus @default(UNPAID) // احتمالاً CamelCase
+  subtotalAmount     Int           @map("subtotal_amount") // snake_case (تایید شده)
+  shippingAmount     Int           @default(0) // احتمالاً CamelCase
+  totalAmount        Int           // احتمالاً CamelCase
+  note               String?
+  alternativeAddress String?       
+  cancellationReason String?       
+  orderSource        OrderSource   @default(APP)
+  placedByUserId     String?
+  placedByName       String?
+  visitorNote        String?
+  createdAt          DateTime      @default(now()) 
+  updatedAt          DateTime      @updatedAt 
+  items              OrderItem[]
+  customer           Customer?     @relation(fields: [customerId], references: [id])
+  statusHistory      OrderStatusHistory[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String   // CamelCase
+  productId       String?  // CamelCase
+  productName     String   // CamelCase
+  productPrice    Int      // CamelCase
+  productUnit     String   // CamelCase
+  productImageUrl String?  // CamelCase
+  originalPrice   Int?     // CamelCase
+  quantity        Int
+  lineTotal       Int      // CamelCase
+  itemsPerPackageLabel String?
+  createdAt       DateTime @default(now()) 
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product? @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  status    OrderStatus
+  timestamp DateTime    @default(now())
+  note      String?
+  changedBy String?
+
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_status_history")
+}
+
+
+//
+// Otp: آخرین کد فعال به‌ازای هر شماره موبایل.
+// (با phone unique upsert می‌شود؛ بنابراین هر شماره در هر لحظه فقط یک کد فعال دارد.)
+
+model Otp {
+  id            String   @id @default(uuid())
+  phone         String   @unique
+  // P1-2 — کد OTP دیگر به‌صورت plaintext ذخیره نمی‌شود.
+  // این فیلد اکنون یک bcrypt verifier (شامل salt داخلی bcrypt) را نگه می‌دارد.
+  // نام فیلد عمداً از `code` به `codeHash` تغییر کرد تا هیچ توسعه‌دهنده‌ای
+  // به‌اشتباه مقدار خام را در آن ننویسد.
+  codeHash      String
+  attempts      Int      @default(0)    // تعداد تلاش ناموفق از زمان آخرین ارسال
+  expiresAt     DateTime
+  lastAttemptAt DateTime? // آخرین تلاش verify (موفق یا ناموفق) — برای محاسبه lock موقت
+  usedAt        DateTime? // در صورت تایید موفق، زمان استفاده ثبت می‌شود (جلوگیری از replay)
+  resendCount   Int      @default(0)   // تعداد درخواست ارسال مجدد (برای محدودیت کلی روزانه اختیاری)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("otps")
+}
+
+//
+// OtpAttempt: لاگ دقیق هر تلاش verify (یا resend) برای پنل ادمین و بررسی تقلب.
+
+model OtpAttempt {
+  id         String      @id @default(uuid())
+  customerId String?     // اگر کاربر قبل از تلاش احراز هویت شده / مشتری داشته باشد
+  phone      String
+  code       String?     // کدی که تلاش شده (اختیاری — می‌توان برای امنیت کمتر ذخیره کرد)
+  action     OtpAction   // RESEND / VERIFY
+  success    Boolean     // آیا تلاش موفق بود؟
+  ip         String?     // در صورت نیاز در آینده
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+
+  @@index([phone, createdAt])
+  @@map("otp_attempts")
+}
+
+enum OtpAction {
+  RESEND
+  VERIFY
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  VISITOR
+}
+
+enum CustomerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  BLOCKED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CARD_TO_CARD
+  ZARRINPAL
+  ZIBAL
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum ProductUnit {
+  CARTON
+  KG
+  PACK
+  PIECE
+  GRAM
+  LITER
+  BOX
+}
+
+
+// ==========================================
+// Enums for Tickets & Notifications
+// ==========================================
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum SenderType {
+  CUSTOMER
+  ADMIN
+}
+
+enum NotificationTargetType {
+  ALL
+  STATUS_BASED
+  SPECIFIC_USERS
+}
+
+// ==========================================
+// Models for Support Tickets
+// ==========================================
+
+model Ticket {
+  id         String          @id @default(uuid())
+  customerId String
+  subject    String
+  status     TicketStatus    @default(OPEN)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  customer   Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages   TicketMessage[]
+
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id         String     @id @default(uuid())
+  ticketId   String
+  senderType SenderType
+  senderId   String     // می‌تواند ID مشتری یا ID ادمین باشد
+  body       String
+  createdAt  DateTime   @default(now())
+
+  ticket     Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+
+// ==========================================
+// Models for Notifications
+// ==========================================
+
+model Notification {
+  id             String                 @id @default(uuid())
+  userId         String?                @map("user_id")
+  title          String
+  body           String
+  type           String?                
+  category       String                 @default("system")
+  imageUrl       String?                @map("image_url")
+  icon           String?
+  targetType     NotificationTargetType @default(ALL)
+  targetStatus   CustomerStatus?        
+  targetUsers    String[]               
+  deepLink       Json?                  @map("deep_link")
+  metadata       Json?
+  isRead         Boolean                @default(false) @map("is_read")
+  readAt         DateTime?              @map("read_at")
+  isBroadcast    Boolean                @default(false) @map("is_broadcast")
+  priority       String                 @default("normal")
+  expiresAt      DateTime?              @map("expires_at")
+  androidChannel String?                @default("promotions") @map("android_channel")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  
+  user           User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reads          NotificationRead[]
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+
+model NotificationRead {
+  id             String       @id @default(uuid())
+  notificationId String
+  userId         String
+  readAt         DateTime     @default(now())
+
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@map("notification_reads")
+}
+
+
+model SearchHistory {
+  id              String   @id @default(uuid())
+  userId          String?
+  query           String
+  queryNormalized String   @map("query_normalized")
+  resultsCount    Int      @default(0)
+  searchedAt      DateTime @default(now())
+
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, searchedAt])
+  @@map("search_history")
+}
+
+
+model SearchLog {
+  id              String   @id @default(uuid())
+  userId          String?
+  query           String
+  queryNormalized String   @map("query_normalized")
+  resultsCount    Int      @default(0)
+  hadResults      Boolean  @default(true)
+  categoryId      String?
+  createdAt       DateTime @default(now())
+
+  @@index([queryNormalized, createdAt])
+  @@map("search_logs")
+}
+
+
+model PushToken {
+  id          String   @id @default(uuid())
+  customerId  String
+  token       String   @unique
+  platform    String   // "ios" | "android"
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("push_tokens")
+}
+
+
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
+
+// ==========================================
+// Banners
+// ==========================================
+
+model Banner {
+  id          String    @id @default(uuid())
+  title       String
+  imageUrl    String
+  linkUrl     String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("banners")
+}
+
+// ==========================================
+// Profile Change Requests
+// ==========================================
+
+
+enum ChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProfileChangeRequest {
+  id          String              @id @default(uuid())
+  customerId  String
+  field       String              // e.g., "storeName", "nationalCode", "businessLicenseImage"
+  oldValue    String?
+  newValue    String
+  status      ChangeRequestStatus @default(PENDING)
+  adminNotes  String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  customer    Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("profile_change_requests")
+}
+
+// ==========================================
+// Error Logs (client-reported errors)
+// ==========================================
+
+model ErrorLog {
+  id          String   @id @default(uuid())
+  message     String
+  stack       String?
+  deviceInfo  String?  @map("device_info")
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("error_logs")
+}

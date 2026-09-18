@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────
+# Bonkoo monorepo — root .gitignore
+# قواعد اصلیِ قبلی (از ریپوی داخلی) بدون تغییر حفظ شده‌اند.
+# ─────────────────────────────────────────────────────────────
+
+# dependencies / build / caches
+node_modules/
+dist/
+.expo/
+.npm/
+*.tsbuildinfo
+# runtime artifacts
+uploads/
+backups/
+
+# ── افزوده‌های نرمال‌سازی ریپو ────────────────────────────────
+
+# build / coverage
+**/build/
+**/coverage/
+**/.nyc_output/
+**/web-build/
+
+# logs
+**/*.log
+
+# diagnostic / generated dumps
+**/eslint-errors.json
+
+# OS / editor temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ── environment files ────────────────────────────────────────
+# همهٔ فایل‌های env واقعی ignore می‌شوند؛ فقط templateها مجازند.
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── database / runtime dumps ─────────────────────────────────
+# توجه: قاعدهٔ عام *.sql عمداً گذاشته نشده است تا Prisma migrations
+# (wholesale-api/prisma/migrations/**/migration.sql) هرگز ناخواسته
+# ignore نشوند. فقط الگوهای دقیق dump:
+*.dump
+*.backup
+*.dbdump
+*.pgdump
+
+# ── delivery archives ────────────────────────────────────────
+# فقط ZIPهای سطح ریشه؛ نه چیزی داخل زیرپوشه‌ها.
+/*.zip
+
+# ── private key material ─────────────────────────────────────
+*.key
+*.p12
+*.pfx
+*.jks
+*.mobileprovision
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+# *.pem عمداً ignore نشد: ممکن است گواهی عمومی باشد.
+# در حال حاضر هیچ فایل .pem/.crt در پروژه وجود ندارد.
+
+# ── environment junk ─────────────────────────────────────────
+.sudo_as_admin_successful

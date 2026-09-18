@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: wholesale_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: wholesale_user
+      POSTGRES_PASSWORD: wholesale_password
+      POSTGRES_DB: wholesale_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - wholesale_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  wholesale_postgres_data:
