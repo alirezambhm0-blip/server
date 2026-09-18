@@ -47,7 +47,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "expo-server-sdk": "^6.1.0",
-    "multer": "^2.2.0",
+    "multer": "^2.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
@@ -106,5 +106,10 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
+  },
+  "overrides": {
+    "multer": "$multer",
+    "qs": "6.16.0",
+    "@xmldom/xmldom": "0.8.15"
   }
 }
